@@ -88,13 +88,14 @@ export class Database {
      * Save test run with metrics in a single atomic transaction
      * Prevents partial saves if metrics fail
      */
-    async saveTestRunWithMetrics(testRun: TestRun, metrics: Array<{ action: string; duration: number }>): Promise<number> {
+    saveTestRunWithMetrics(testRun: TestRun, metrics: Array<{ action: string; duration: number }>): Promise<number> {
         return new Promise((resolve, reject) => {
-            this.db.serialize(() => {
-                this.db.run('BEGIN TRANSACTION');
+            const db = this.db;
+            db.serialize(() => {
+                db.run('BEGIN TRANSACTION');
                 
                 // Save test run
-                this.db.run(
+                db.run(
                     `INSERT INTO test_runs (timestamp, url, goal, testPlan, success, duration, screenshot, logs)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
@@ -107,19 +108,19 @@ export class Database {
                         testRun.screenshotBase64 ? Buffer.from(testRun.screenshotBase64, 'base64') : null,
                         testRun.logs
                     ],
-                    function(err) {
+                    function(err: any) {
                         if (err) {
-                            this.db.run('ROLLBACK');
+                            db.run('ROLLBACK');
                             reject(err);
                             return;
                         }
                         
-                        const testRunId = this.lastID;
+                        const testRunId = (this as any).lastID as number;
                         
                         // Save metrics
                         let completed = 0;
                         if (metrics.length === 0) {
-                            this.db.run('COMMIT', (commitErr) => {
+                            db.run('COMMIT', (commitErr: any) => {
                                 if (commitErr) reject(commitErr);
                                 else resolve(testRunId);
                             });
@@ -127,19 +128,19 @@ export class Database {
                         }
                         
                         metrics.forEach((metric) => {
-                            this.db.run(
+                            db.run(
                                 `INSERT INTO performance_metrics (testRunId, actionName, duration) VALUES (?, ?, ?)`,
                                 [testRunId, metric.action, metric.duration],
-                                (metricErr) => {
+                                (metricErr: any) => {
                                     if (metricErr) {
-                                        this.db.run('ROLLBACK');
+                                        db.run('ROLLBACK');
                                         reject(metricErr);
                                         return;
                                     }
                                     
                                     completed++;
                                     if (completed === metrics.length) {
-                                        this.db.run('COMMIT', (commitErr) => {
+                                        db.run('COMMIT', (commitErr: any) => {
                                             if (commitErr) reject(commitErr);
                                             else resolve(testRunId);
                                         });
@@ -147,7 +148,7 @@ export class Database {
                                 }
                             );
                         });
-                    }.bind(this)
+                    }
                 );
             });
         });
