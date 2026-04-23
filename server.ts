@@ -12,6 +12,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Authentication Middleware
+const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // If no access token is configured on the server, allow all requests (for local dev)
+    if (!process.env.ACCESS_TOKEN) {
+        return next();
+    }
+
+    const clientToken = req.headers['x-access-token'] || req.body?.token || req.query?.token;
+    
+    if (!clientToken || clientToken !== process.env.ACCESS_TOKEN) {
+        console.warn(`[Auth] Unauthorized access attempt from IP: ${req.ip}`);
+        return res.status(401).json({ error: "Unauthorized: Invalid or missing Dashboard Password" });
+    }
+    
+    next();
+};
+
 // Determine the root path depending on if we are running ts-node or compiled JS
 const rootPath = __dirname.includes('dist') ? path.join(__dirname, '..') : __dirname;
 
@@ -23,7 +40,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(rootPath, 'public', '3d-execution.html'));
 });
 
-app.post('/api/generate-plan', async (req, res) => {
+app.post('/api/generate-plan', requireAuth, async (req, res) => {
     const { url, goal, requirement, type = 'plan' } = req.body;
 
     if (!goal && !requirement) {
@@ -97,7 +114,7 @@ Automated Goal (for AI Agent):
     }
 });
 
-app.post('/api/run', async (req, res) => {
+app.post('/api/run', requireAuth, async (req, res) => {
     const { url, goal, testPlan, reportBug } = req.body;
 
     if (!url || !goal) {
@@ -117,7 +134,7 @@ app.post('/api/run', async (req, res) => {
 });
 
 // Get test history
-app.get('/api/test-history', async (req, res) => {
+app.get('/api/test-history', requireAuth, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit as string) || 20;
         const history = await db.getTestHistory(limit);
@@ -128,7 +145,7 @@ app.get('/api/test-history', async (req, res) => {
 });
 
 // Get specific test run
-app.get('/api/test-run/:id', async (req, res) => {
+app.get('/api/test-run/:id', requireAuth, async (req, res) => {
     try {
         const testRun = await db.getTestRunById(parseInt(req.params.id));
         if (!testRun) {
@@ -141,7 +158,7 @@ app.get('/api/test-run/:id', async (req, res) => {
 });
 
 // Get performance metrics for a test
-app.get('/api/performance-metrics/:testRunId', async (req, res) => {
+app.get('/api/performance-metrics/:testRunId', requireAuth, async (req, res) => {
     try {
         const metrics = await db.getPerformanceMetrics(parseInt(req.params.testRunId));
         res.json({ success: true, data: metrics });
@@ -151,7 +168,7 @@ app.get('/api/performance-metrics/:testRunId', async (req, res) => {
 });
 
 // Get test templates
-app.get('/api/test-templates', async (req, res) => {
+app.get('/api/test-templates', requireAuth, async (req, res) => {
     try {
         const templates = await db.getTestTemplates();
         res.json({ success: true, data: templates });
@@ -161,7 +178,7 @@ app.get('/api/test-templates', async (req, res) => {
 });
 
 // Save test template
-app.post('/api/test-template', async (req, res) => {
+app.post('/api/test-template', requireAuth, async (req, res) => {
     const { name, description, url, goal, testPlan } = req.body;
 
     if (!name || !url || !goal) {
@@ -177,7 +194,8 @@ app.post('/api/test-template', async (req, res) => {
 });
 
 // Server-Sent Events (SSE) for real-time execution updates
-app.get('/api/test-events', (req, res) => {
+// Note: We use query params for SSE because EventSource doesn't support custom headers
+app.get('/api/test-events', requireAuth, (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');

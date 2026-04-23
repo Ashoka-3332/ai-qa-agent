@@ -513,7 +513,10 @@
         <div class="main-content">
             <!-- Left Panel: Controls -->
             <div class="panel control-panel">
-                <div class="panel-header">▶ TEST CONFIGURATION</div>
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>▶ TEST CONFIGURATION</span>
+                    <input type="password" id="dashboardToken" placeholder="Dashboard Password" style="width: 150px; padding: 4px 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #00ff88; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px;" title="Required only if ACCESS_TOKEN is set on the server" />
+                </div>
                 <div class="panel-content">
                     <form id="runForm" style="display: flex; flex-direction: column; gap: 15px; height: 100%;">
                         <div class="form-group">
@@ -852,7 +855,7 @@
             try {
                 const response = await fetch('/api/generate-plan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ url: url || 'N/A', goal: goal, type: 'plan' })
                 });
 
@@ -909,7 +912,9 @@
             document.getElementById('stopBtn').style.display = 'block';
 
             try {
-                eventSource = new EventSource('/api/test-events');
+                // For SSE, we can't easily set headers natively in EventSource, so pass it via URL
+                const token = document.getElementById('dashboardToken').value.trim();
+                eventSource = new EventSource('/api/test-events?token=' + encodeURIComponent(token));
 
                 eventSource.onmessage = (event) => {
                     const data = JSON.parse(event.data);
@@ -926,6 +931,9 @@
                         case 'screenshot':
                             displayScreenshot(data.screenshot);
                             break;
+                        case 'metric':
+                            addAction(data.action, data.duration);
+                            break;
                         case 'complete':
                             eventSource.close();
                             updateStatus(data.success ? 'success' : 'error', data.success ? '✓ PASSED' : '✗ FAILED');
@@ -941,9 +949,21 @@
 
                 const response = await fetch('/api/run', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ url, goal, testPlan, reportBug: false })
                 });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Connection error: ' + err.message);
+                updateStatus('error', 'Connection Failed');
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('runBtn').style.display = 'block';
+            }
+        });
 
                 if (!response.ok) {
                     const result = await response.json();
@@ -999,6 +1019,15 @@
             document.getElementById('durationText').textContent = `${duration}ms`;
         }
 
+        // Helper function to get token header
+        function getAuthHeaders() {
+            const token = document.getElementById('dashboardToken').value.trim();
+            return {
+                'Content-Type': 'application/json',
+                'x-access-token': token
+            };
+        }
+
         // ============ TEST PLAN & CASE GENERATOR ============
         async function generateTestPlan() {
             const requirement = document.getElementById('genRequirement').value.trim();
@@ -1024,7 +1053,7 @@
             try {
                 const response = await fetch('/api/generate-plan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
                         requirement: fullRequirement,
                         type: 'plan'
@@ -1067,7 +1096,7 @@
             try {
                 const response = await fetch('/api/generate-plan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
                         goal: prompt,
                         type: 'case'
@@ -1148,8 +1177,18 @@
 
         async function loadHistory() {
             try {
-                const response = await fetch('/api/test-history?limit=50');
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch('/api/test-history?limit=50', {
+                    headers: { 'x-access-token': token }
+                });
+                
                 const data = await response.json();
+                
+                if (!response.ok) {
+                    document.getElementById('historyList').innerHTML = `<div style="color: #ff0000; padding: 20px;">Error: ${data.error || 'Authentication failed'}</div>`;
+                    return;
+                }
+                
                 const historyList = document.getElementById('historyList');
                 historyList.innerHTML = '';
 
@@ -1176,6 +1215,158 @@
                 } else {
                     historyList.innerHTML = '<div style="color: #0099ff; font-size: 14px; text-align: center; padding: 40px;">No test history yet. Run a test to see results!</div>';
                 }
+            } catch (err) {
+                console.error('Error loading history:', err);
+                document.getElementById('historyList').innerHTML = `<div style="color: #ff0000;">Error loading history: ${err.message}</div>`;
+            }
+        }
+
+        async function showTestDetails(testId) {
+            try {
+                // Fetch full details
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch(`/api/test-run/${testId}`, {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const test = data.data;
+                    
+                    // Populate modal
+                    document.getElementById('modalStatus').innerHTML = test.success ? '<span style="color: #00ff00;">✓ PASSED</span>' : '<span style="color: #ff0000;">✗ FAILED</span>';
+                    document.getElementById('modalDate').textContent = new Date(test.timestamp).toLocaleString();
+                    document.getElementById('modalDuration').textContent = `${test.duration} ms`;
+                    document.getElementById('modalUrl').textContent = test.url || 'N/A';
+                    document.getElementById('modalGoal').textContent = test.goal;
+                    document.getElementById('modalLogs').textContent = test.logs || 'No logs available.';
+                    
+                    // Screenshot
+                    const imgEl = document.getElementById('modalScreenshot');
+                    const noImgEl = document.getElementById('modalNoScreenshot');
+                    
+                    if (test.screenshotBase64) {
+                        imgEl.src = `data:image/png;base64,${test.screenshotBase64}`;
+                        imgEl.style.display = 'block';
+                        noImgEl.style.display = 'none';
+                    } else {
+                        imgEl.style.display = 'none';
+                        noImgEl.style.display = 'block';
+                    }
+                    
+                    // Show modal
+                    document.getElementById('detailsModal').style.display = 'block';
+                } else {
+                    alert('Error loading test details: ' + (data.error || 'Authentication failed'));
+                }
+            } catch (err) {
+                console.error('Failed to load test details:', err);
+                alert('Connection error. Could not load details.');
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch('/api/test-templates', {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    document.getElementById('templatesList').innerHTML = `<div style="color: #ff0000; padding: 20px;">Error: ${data.error || 'Authentication failed'}</div>`;
+                    return;
+                }
+                
+                const templatesList = document.getElementById('templatesList');
+                templatesList.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(template => {
+                        const item = document.createElement('div');
+                        item.className = 'tab-content-box';
+                        item.style.borderColor = '#ffaa00';
+                        item.innerHTML = `
+                            <div style="color: #ffaa00; font-weight: bold; font-size: 12px; margin-bottom: 8px;">${template.name}</div>
+                            <div style="color: #00ff88; font-size: 11px; margin-bottom: 8px;">${template.description || 'No description'}</div>
+                            <div style="color: #0099ff; font-size: 10px; margin-bottom: 12px;">URL: ${template.url}</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="btn" onclick="useTemplate('${template.id}')" style="padding: 6px;">▶ USE</button>
+                                <button class="btn" onclick="deleteTemplate('${template.id}')" style="padding: 6px; border-color: #ff0000; color: #ff0000;">🗑️ DELETE</button>
+                            </div>
+                        `;
+                        templatesList.appendChild(item);
+                    });
+                } else {
+                    templatesList.innerHTML = '<div style="color: #0099ff; font-size: 14px; text-align: center; padding: 40px;">No templates saved yet. Save your first test to create a template!</div>';
+                }
+            } catch (err) {
+                console.error('Error loading templates:', err);
+                document.getElementById('templatesList').innerHTML = `<div style="color: #ff0000;">Error loading templates: ${err.message}</div>`;
+            }
+        }
+
+        async function saveAsTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            const desc = document.getElementById('templateDesc').value.trim();
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+            const testPlan = document.getElementById('testPlan').value;
+
+            if (!name) {
+                alert('Template name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/test-template', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ name, description: desc, url, goal, testPlan })
+                });
+
+                if (response.ok) {
+                    alert('Template saved successfully!');
+                    closeSaveTemplateForm();
+                    loadTemplates();
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + err.error);
+                }
+            } catch (err) {
+                alert('Error saving template: ' + err.message);
+            }
+        }
+
+        async function useTemplate(templateId) {
+            try {
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch(`/api/test-run/${templateId}`, {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (data.data) {
+                    document.getElementById('url').value = data.data.url;
+                    document.getElementById('goal').value = data.data.goal;
+                    document.getElementById('testPlan').value = data.data.testPlan || '';
+                    
+                    // Show test plan section
+                    document.getElementById('testPlanSection').classList.add('active');
+                    document.getElementById('testPlan').style.display = 'block';
+                    document.getElementById('planLoaderContainer').style.display = 'none';
+                    
+                    // Switch to execution tab
+                    switchTab('execution');
+                    alert('Template loaded! Click "RUN TEST" to execute.');
+                }
+            } catch (err) {
+                alert('Error loading template: ' + err.message);
+            }
+        }
             } catch (err) {
                 console.error('Error loading history:', err);
                 document.getElementById('historyList').innerHTML = `<div style="color: #ff0000;">Error loading history: ${err.message}</div>`;
