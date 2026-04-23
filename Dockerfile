@@ -7,8 +7,14 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (ignoring scripts to prevent binary downloads)
+RUN npm ci --ignore-scripts
+
+# Rebuild sqlite3 from source against the container's glibc version
+RUN npm rebuild sqlite3 --build-from-source
+
+# Run any other postinstall scripts
+RUN npm rebuild
 
 # Copy the rest of the application code
 COPY . .
