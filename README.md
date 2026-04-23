@@ -1,6 +1,8 @@
 # 🤖 AI Autonomous QA Testing Platform
 
-A **production-grade, AI-powered QA automation platform** with real-time execution monitoring, intelligent test planning, and comprehensive bug reporting. Built with TypeScript, Playwright, and Three.js.
+A **production-ready, AI-powered QA automation platform** with real-time execution monitoring, intelligent test planning, and comprehensive bug reporting. Built with TypeScript, Playwright, and Three.js.
+
+> ✅ **Production Hardened**: All critical security vulnerabilities fixed. See [FIXES_SUMMARY.md](./FIXES_SUMMARY.md) for details.
 
 ## ✨ Features
 
@@ -50,28 +52,36 @@ npm install
 
 ### Configuration
 
-Create a `.env` file:
+Create a `.env` file with your API credentials:
 
 ```bash
 cp .env.example .env
+# Edit with your actual values
+nano .env
 ```
 
-Edit `.env` with your settings:
-
+**Required Environment Variables:**
 ```
-# Required
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=sk-your_actual_key_here
 OPENAI_BASE_URL=https://gpt.protium.co.in/api/v1/
 OPENAI_MODEL=gemini-2.5-flash
+```
 
-# Optional: Jira Bug Reporting
+**Optional Environment Variables:**
+```
+# Access Control
+ACCESS_TOKEN=your_secure_password
+
+# Jira Bug Reporting
 JIRA_URL=https://your-jira.atlassian.net
 JIRA_TOKEN=your_jira_api_token
 JIRA_PROJECT=PROJ
 
-# Optional: Slack Notifications
+# Slack Notifications
 SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK
 ```
+
+See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for production configuration.
 
 ### Running the Platform
 
@@ -340,6 +350,41 @@ sqlite3 qa-tests.db "SELECT * FROM test_runs LIMIT 5;"
 2. **Use test templates** to avoid regenerating plans
 3. **Monitor metrics** to identify slow steps
 4. **Save screenshots** only when needed (toggle in settings)
+
+---
+
+## 📚 Documentation
+
+- **[FIXES_SUMMARY.md](./FIXES_SUMMARY.md)** - Executive summary of all production fixes
+- **[PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md)** - Security verification checklist
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+
+---
+
+## 🚀 Deployment
+
+### One-Click Deploy to Render
+
+This repo includes a `Dockerfile` and `render.yaml` for easy deployment:
+
+1. Push to GitHub
+2. Connect Render to your GitHub account
+3. Create new Web Service
+4. Set environment variables
+5. Deploy!
+
+See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+### Production Features
+
+- ✅ HTTPS enabled automatically
+- ✅ Rate limiting (100 req/15min)
+- ✅ CORS protection
+- ✅ Global error handlers
+- ✅ Graceful shutdown
+- ✅ Request timeouts
+- ✅ Input validation
+- ✅ URL validation (SSRF protection)
 
 ---
 
