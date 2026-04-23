@@ -1,6 +1,9 @@
 # Use the official Playwright image which includes all browser dependencies
 FROM mcr.microsoft.com/playwright:v1.40.0-jammy
 
+# Install build tools required to compile native dependencies like sqlite3
+RUN apt-get update && apt-get install -y python3 make g++ build-essential
+
 # Set working directory
 WORKDIR /app
 
