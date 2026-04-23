@@ -389,3 +389,22 @@ process.on('SIGINT', async () => {
         process.exit(1);
     }, 30000);
 });
+
+// Debug endpoint to check outbound IP (remove in production)
+app.get('/api/debug/check-ip', (req, res) => {
+    res.json({ message: 'This endpoint makes a request to check your outbound IP' });
+});
+
+// Helper endpoint to test API connectivity
+app.post('/api/debug/test-api', async (req, res) => {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const ip = await response.json();
+        res.json({ 
+            outbound_ip: ip.ip,
+            message: 'This is your outbound IP. Share this with gpt.protium.co.in admin for whitelisting'
+        });
+    } catch (e) {
+        res.status(500).json({ error: String(e) });
+    }
+});
