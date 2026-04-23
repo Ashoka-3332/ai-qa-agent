@@ -77,8 +77,10 @@ export function sanitizeErrorForClient(error: unknown): string {
     // Log the full error internally
     console.error('Detailed error:', error);
     
-    // Return generic message to client
-    return 'An error occurred processing your request';
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return String(error) || 'An error occurred processing your request';
 }
 
 /**
