@@ -1,11 +1,13 @@
 import { OpenAI } from 'openai';
 import { BrowserController } from './browser';
-import * as dotenv from 'dotenv';
 import { db, TestRun } from './database';
 import { bugReporter } from './bug-reporter';
 import { executionEmitter } from './execution-emitter';
+import { validateEnvironment, config } from './config';
+import { validateLLMDecision, validateUrl, delay, createTimeoutPromise } from './utils';
 
-dotenv.config();
+// Validate environment at module load time
+validateEnvironment();
 
 // Define exactly what the LLM should output to ensure structured, safe actions
 const systemPrompt = `You are an Autonomous QA Engineer testing a web application.
@@ -31,11 +33,12 @@ export class QAAgent {
     private openai: OpenAI;
     private browser: BrowserController;
     private maxSteps: number = 10;
+    private stepDelay: number = 2000; // milliseconds
 
     constructor() {
         this.openai = new OpenAI({ 
-            apiKey: process.env.OPENAI_API_KEY,
-            baseURL: process.env.OPENAI_BASE_URL 
+            apiKey: config.openaiApiKey,
+            baseURL: config.openaiBaseUrl 
         });
         this.browser = new BrowserController();
     }
@@ -51,16 +54,17 @@ export class QAAgent {
         const metrics: any[] = [];
         let testRunId: number | undefined;
 
-        log(`🚀 Starting QA Agent: "${goal}"`);
-        executionEmitter.emitLog(`🚀 Starting QA Agent: "${goal}"`);
-        
-        if (testPlan) {
-            log(`📋 Using provided Test Plan:\n${testPlan}`);
-            executionEmitter.emitLog(`📋 Using provided Test Plan`);
-        }
-        
-        await this.browser.init();
-        await this.browser.navigate(startUrl);
+        try {
+            log(`🚀 Starting QA Agent: "${goal}"`);
+            executionEmitter.emitLog(`🚀 Starting QA Agent: "${goal}"`);
+            
+            if (testPlan) {
+                log(`📋 Using provided Test Plan:\n${testPlan}`);
+                executionEmitter.emitLog(`📋 Using provided Test Plan`);
+            }
+            
+            await this.browser.init();
+            await this.browser.navigate(startUrl);
 
         let step = 0;
         let isDone = false;
@@ -99,21 +103,30 @@ What is the next step? Ensure your reply is ONLY valid JSON.
 `;
 
             const payload = {
-                model: process.env.OPENAI_MODEL || "gpt-4-turbo",
+                model: config.openaiModel,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: prompt }
                 ]
             };
 
-            const response = await fetch(`${process.env.OPENAI_BASE_URL}chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-                },
-                body: JSON.stringify(payload)
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), config.requestTimeout);
+
+            let response;
+            try {
+                response = await fetch(`${config.openaiBaseUrl}chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.openaiApiKey}`
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeout);
+            }
 
             if (!response.ok) {
                 const err = `API Error: ${response.status} - ${await response.text()}`;
@@ -130,32 +143,43 @@ What is the next step? Ensure your reply is ONLY valid JSON.
             
             try {
                 const decision = JSON.parse(responseText);
-                log(`🤔 Thought: ${decision.thought}`);
-                log(`🎬 Action: ${decision.action} on Target: ${decision.targetId || 'N/A'}`);
                 
-                executionEmitter.emitLog(`🤔 Thought: ${decision.thought}`);
-                executionEmitter.emitAction(decision.action, decision.targetId || 0, `${decision.action} on Target ${decision.targetId || 'N/A'}`, step + 1, this.maxSteps);
+                // Validate LLM decision schema
+                const validation = validateLLMDecision(decision);
+                if (!validation.valid) {
+                    log(`❌ Invalid LLM decision: ${validation.error}`);
+                    finalMessage = "Invalid decision from LLM.";
+                    break;
+                }
+
+                const validatedDecision = validation.data!;
+                log(`🤔 Thought: ${validatedDecision.thought}`);
+                log(`🎬 Action: ${validatedDecision.action} on Target: ${validatedDecision.targetId || 'N/A'}`);
+                
+                executionEmitter.emitLog(`🤔 Thought: ${validatedDecision.thought}`);
+                executionEmitter.emitAction(validatedDecision.action, validatedDecision.targetId || 0, `${validatedDecision.action} on Target ${validatedDecision.targetId || 'N/A'}`, step + 1, this.maxSteps);
 
                 // 3. Act
                 const actionStartTime = Date.now();
-                switch (decision.action) {
+                switch (validatedDecision.action) {
                     case 'click':
-                        history.push(`Clicked element ${decision.targetId}`);
-                        await this.browser.clickElement(decision.targetId);
+                        history.push(`Clicked element ${validatedDecision.targetId}`);
+                        await this.browser.clickElement(validatedDecision.targetId!);
                         const clickDuration = Date.now() - actionStartTime;
-                        metrics.push({ action: `click-${decision.targetId}`, duration: clickDuration });
-                        executionEmitter.emitMetric(`click-${decision.targetId}`, clickDuration);
+                        metrics.push({ action: `click-${validatedDecision.targetId}`, duration: clickDuration });
+                        executionEmitter.emitMetric(`click-${validatedDecision.targetId}`, clickDuration);
                         break;
                     case 'type':
-                        history.push(`Typed "${decision.value}" into element ${decision.targetId}`);
-                        await this.browser.typeElement(decision.targetId, decision.value);
+                        history.push(`Typed "${validatedDecision.value}" into element ${validatedDecision.targetId}`);
+                        await this.browser.typeElement(validatedDecision.targetId!, validatedDecision.value!);
                         const typeDuration = Date.now() - actionStartTime;
-                        metrics.push({ action: `type-${decision.targetId}`, duration: typeDuration });
-                        executionEmitter.emitMetric(`type-${decision.targetId}`, typeDuration);
+                        metrics.push({ action: `type-${validatedDecision.targetId}`, duration: typeDuration });
+                        executionEmitter.emitMetric(`type-${validatedDecision.targetId}`, typeDuration);
                         break;
                     case 'navigate':
-                        history.push(`Navigated to ${decision.url}`);
-                        await this.browser.navigate(decision.url);
+                        // URL already validated in validateLLMDecision
+                        history.push(`Navigated to ${validatedDecision.url}`);
+                        await this.browser.navigate(validatedDecision.url!);
                         const navDuration = Date.now() - actionStartTime;
                         metrics.push({ action: `navigate`, duration: navDuration });
                         executionEmitter.emitMetric(`navigate`, navDuration);
@@ -168,16 +192,11 @@ What is the next step? Ensure your reply is ONLY valid JSON.
                         finalMessage = "Agent successfully achieved the goal.";
                         break;
                     case 'fail':
-                        log(`❌ Agent declared failure: ${decision.thought}`);
-                        executionEmitter.emitLog(`❌ Agent declared failure: ${decision.thought}`);
+                        log(`❌ Agent declared failure: ${validatedDecision.thought}`);
+                        executionEmitter.emitLog(`❌ Agent declared failure: ${validatedDecision.thought}`);
                         isDone = true;
                         finalMessage = "Agent could not achieve the goal.";
                         break;
-                    default:
-                        log(`⚠️ Unknown action received: ${decision.action}`);
-                        executionEmitter.emitLog(`⚠️ Unknown action received: ${decision.action}`);
-                        isDone = true;
-                        finalMessage = "Agent returned an unknown action.";
                 }
             } catch (e: any) {
                 log(`❌ Failed to parse LLM response or execute action: ${e.message}`);
@@ -187,7 +206,7 @@ What is the next step? Ensure your reply is ONLY valid JSON.
             }
 
             // Small delay to let the page settle
-            await new Promise(r => setTimeout(r, 2000));
+            await delay(this.stepDelay);
             step++;
         }
 
@@ -268,13 +287,40 @@ What is the next step? Ensure your reply is ONLY valid JSON.
             }
         }
 
-        return {
-            success,
-            logs,
-            screenshot: screenshotBase64,
-            message: finalMessage,
-            metrics: metrics,
-            testRunId: testRunId
-        };
+            return {
+                success,
+                logs,
+                screenshot: screenshotBase64,
+                message: finalMessage,
+                metrics: metrics,
+                testRunId: testRunId
+            };
+        } catch (error: any) {
+            // Ensure browser is always closed, even on error
+            try {
+                await this.browser.close();
+            } catch (closeErr) {
+                console.error('Error closing browser:', closeErr);
+            }
+            
+            const totalDuration = Date.now() - startTime;
+            const errorMessage = `Test execution failed: ${error.message}`;
+            log(`❌ ${errorMessage}`);
+            
+            return {
+                success: false,
+                logs,
+                message: errorMessage,
+                metrics: metrics,
+                testRunId: testRunId
+            };
+        } finally {
+            // Final cleanup - ensure browser is closed
+            try {
+                await this.browser.close();
+            } catch (error) {
+                // Silently fail if already closed
+            }
+        }
     }
 }
