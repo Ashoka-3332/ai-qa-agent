@@ -19,7 +19,10 @@ const requireAuth = (req: express.Request, res: express.Response, next: express.
         return next();
     }
 
-    const clientToken = req.headers['x-access-token'] || req.body?.token || req.query?.token;
+    const headerToken = req.headers['x-access-token'];
+    const clientToken = (Array.isArray(headerToken) ? headerToken[0] : headerToken) 
+                        || req.body?.token 
+                        || req.query?.token;
     
     if (!clientToken || clientToken !== process.env.ACCESS_TOKEN) {
         console.warn(`[Auth] Unauthorized access attempt from IP: ${req.ip}`);
@@ -147,7 +150,7 @@ app.get('/api/test-history', requireAuth, async (req, res) => {
 // Get specific test run
 app.get('/api/test-run/:id', requireAuth, async (req, res) => {
     try {
-        const testRun = await db.getTestRunById(parseInt(req.params.id));
+        const testRun = await db.getTestRunById(parseInt(req.params.id as string));
         if (!testRun) {
             return res.status(404).json({ error: 'Test run not found' });
         }
@@ -160,7 +163,7 @@ app.get('/api/test-run/:id', requireAuth, async (req, res) => {
 // Get performance metrics for a test
 app.get('/api/performance-metrics/:testRunId', requireAuth, async (req, res) => {
     try {
-        const metrics = await db.getPerformanceMetrics(parseInt(req.params.testRunId));
+        const metrics = await db.getPerformanceMetrics(parseInt(req.params.testRunId as string));
         res.json({ success: true, data: metrics });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
