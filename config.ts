@@ -29,7 +29,7 @@ export function validateEnvironment() {
 export const config = {
     port: parseInt(process.env.PORT || '3000'),
     openaiApiKey: process.env.OPENAI_API_KEY!,
-    openaiBaseUrl: process.env.OPENAI_BASE_URL!,
+    openaiBaseUrl: process.env.OPENAI_BASE_URL?.endsWith('/') ? process.env.OPENAI_BASE_URL : `${process.env.OPENAI_BASE_URL}/`,
     openaiModel: process.env.OPENAI_MODEL || 'gpt-4-turbo',
     accessToken: process.env.ACCESS_TOKEN,
     nodeEnv: process.env.NODE_ENV || 'development',
