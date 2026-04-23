@@ -12,13 +12,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve the Live Execution Dashboard as the default page (MUST BE BEFORE static middleware)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', '3d-execution.html'));
-});
+// Determine the root path depending on if we are running ts-node or compiled JS
+const rootPath = __dirname.includes('dist') ? path.join(__dirname, '..') : __dirname;
 
 // Serve static frontend files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(rootPath, 'public')));
+
+// Serve the Live Execution Dashboard as the default page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(rootPath, 'public', '3d-execution.html'));
+});
 
 app.post('/api/generate-plan', async (req, res) => {
     const { url, goal, requirement, type = 'plan' } = req.body;

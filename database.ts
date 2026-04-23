@@ -1,7 +1,8 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
-const dbPath = path.join(__dirname, 'qa-tests.db');
+const rootPath = __dirname.includes('dist') ? path.join(__dirname, '..') : __dirname;
+const dbPath = path.join(rootPath, 'qa-tests.db');
 
 export interface TestRun {
     id?: number;

@@ -5,7 +5,11 @@ export class BrowserController {
     public page: Page | null = null;
 
     async init() {
-        this.browser = await chromium.launch({ headless: false }); // See it happen!
+        // If we are in a production/cloud environment, run Headless. 
+        // If we are running locally, show the browser window so we can watch it.
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+        
+        this.browser = await chromium.launch({ headless: isProduction });
         const context = await this.browser.newContext();
         this.page = await context.newPage();
     }
