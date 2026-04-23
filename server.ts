@@ -153,7 +153,7 @@ Automated Goal (for AI Agent):
 
             if (!response.ok) {
                 const err = await response.text();
-                throw new Error(`API Error: ${response.status}`);
+                throw new Error(`API Error: ${response.status} - ${err}`);
             }
 
             const data = await response.json();
