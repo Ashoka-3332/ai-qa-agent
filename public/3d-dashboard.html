@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI QA Agent - Advanced Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-element {
+            position: absolute;
+            pointer-events: auto;
+        }
+
+        .tabs {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 101;
+            background: rgba(10, 14, 39, 0.95);
+            padding: 10px;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid #0099ff;
+            color: #0099ff;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn:hover {
+            background: rgba(0, 153, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+        }
+
+        .panel {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 100;
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 25px;
+            width: 450px;
+            max-height: 70vh;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            overflow-y: auto;
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            color: #00ff88;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+            letter-spacing: 1px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid #0099ff;
+            color: #00ff88;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button-group button {
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 153, 255, 0.1));
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .button-group button:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .button-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #00ff88;
+            font-size: 11px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #00ff88;
+        }
+
+        .template-item {
+            background: rgba(0, 153, 255, 0.1);
+            border: 1px solid #0099ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .template-item:hover {
+            background: rgba(0, 153, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .template-name {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .template-desc {
+            color: #0099ff;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        .history-item {
+            background: rgba(0, 255, 0, 0.05);
+            border-left: 3px solid #00ff00;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item.failed {
+            border-left-color: #ff0000;
+            background: rgba(255, 0, 0, 0.05);
+        }
+
+        .history-item:hover {
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .history-time {
+            color: #0099ff;
+            font-size: 10px;
+        }
+
+        .history-status {
+            color: #00ff00;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .history-status.failed {
+            color: #ff0000;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            color: #00ff88;
+            font-size: 11px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #00ff88;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0099ff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="hud">
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('control')">◆ CONTROL</button>
+            <button class="tab-btn" onclick="switchTab('templates')">◆ TEMPLATES</button>
+            <button class="tab-btn" onclick="switchTab('history')">◆ HISTORY</button>
+            <button class="tab-btn" onclick="switchTab('metrics')">◆ METRICS</button>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="panel active" id="controlPanel">
+            <div class="panel-header">▶ EXECUTION CONTROL</div>
+            <form id="runForm">
+                <div class="form-group">
+                    <label>Target URL</label>
+                    <input type="url" id="url" placeholder="https://..." value="https://www.saucedemo.com/" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Testing Objective</label>
+                    <textarea id="goal" rows="4" placeholder="Describe your testing goal..." required>Login to the application using username 'standard_user' and password 'secret_sauce'. Then, click 'Add to cart' on the first item (Backpack). After that, verify the cart icon in the top right shows a badge with '1'. When you verify it says '1', mark the test as done.</textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" id="generateBtn">▶ GENERATE PLAN</button>
+                    <button type="submit" id="runBtn" disabled>▶ EXECUTE</button>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Advanced Options</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="reportBug" />
+                        <label for="reportBug" style="margin: 0;">Report failures to Jira/Slack</label>
+                    </div>
+                </div>
+
+                <div id="planPanel" style="margin-top: 15px; display: none;">
+                    <label>Generated Test Plan (Editable)</label>
+                    <textarea id="testPlan" rows="5" style="margin-top: 5px;"></textarea>
+                </div>
+            </form>
+        </div>
+
+        <!-- Templates Panel -->
+        <div class="panel" id="templatesPanel">
+            <div class="panel-header">▶ TEST TEMPLATES</div>
+            <div id="templatesList" style="margin-bottom: 15px;"></div>
+            <div style="border-top: 1px solid #00ff88; padding-top: 15px;">
+                <label style="color: #00ff88; font-size: 11px; font-weight: bold;">Save Current as Template</label>
+                <input type="text" id="templateName" placeholder="Template Name" style="margin-top: 5px;" />
+                <input type="text" id="templateDesc" placeholder="Description" style="margin-top: 5px;" />
+                <button style="width: 100%; margin-top: 10px; padding: 8px; background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 153, 255, 0.1)); border: 2px solid #00ff88; color: #00ff88; cursor: pointer; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold;" onclick="saveTemplate()">▶ SAVE TEMPLATE</button>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="panel" id="historyPanel">
+            <div class="panel-header">▶ TEST HISTORY</div>
+            <div id="historyList"></div>
+        </div>
+
+        <!-- Metrics Panel -->
+        <div class="panel" id="metricsPanel">
+            <div class="panel-header">▶ PERFORMANCE METRICS</div>
+            <div id="metricsList"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ============ 3D SCENE ============
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0a0e27, 1);
+        camera.position.z = 5;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0x00ff88, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
+        const geometries = [];
+        for (let i = 0; i < 15; i++) {
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() > 0.5 ? 0x00ff88 : 0x0099ff,
+                metalness: 0.7,
+                roughness: 0.2,
+                emissive: Math.random() > 0.5 ? 0x00ff88 : 0x0099ff,
+                emissiveIntensity: 0.3
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20
+            );
+            mesh.velocity = {
+                x: (Math.random() - 0.5) * 0.01,
+                y: (Math.random() - 0.5) * 0.01,
+                z: (Math.random() - 0.5) * 0.01
+            };
+            scene.add(mesh);
+            geometries.push(mesh);
+        }
+
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            geometries.forEach(mesh => {
+                mesh.rotation.x += mesh.velocity.x;
+                mesh.rotation.y += mesh.velocity.y;
+                mesh.position.x += mesh.velocity.x * 0.5;
+                mesh.position.y += mesh.velocity.y * 0.5;
+
+                if (Math.abs(mesh.position.x) > 15) mesh.position.x *= -0.9;
+                if (Math.abs(mesh.position.y) > 15) mesh.position.y *= -0.9;
+            });
+
+            camera.position.x = mouseX * 0.5;
+            camera.position.y = mouseY * 0.5;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ============ UI LOGIC ============
+        function switchTab(tabName) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName + 'Panel').classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'history') loadHistory();
+            if (tabName === 'templates') loadTemplates();
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/test-history?limit=10');
+                const data = await response.json();
+                const list = document.getElementById('historyList');
+                list.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(test => {
+                        const item = document.createElement('div');
+                        item.className = `history-item ${!test.success ? 'failed' : ''}`;
+                        const date = new Date(test.timestamp).toLocaleString();
+                        const status = test.success ? '✓ PASSED' : '✗ FAILED';
+                        item.innerHTML = `
+                            <div class="history-time">${date}</div>
+                            <div class="history-status ${!test.success ? 'failed' : ''}">${status}</div>
+                            <div style="color: #0099ff; font-size: 10px; margin-top: 3px;">${test.goal.substring(0, 50)}...</div>
+                            <div style="color: #00ff88; font-size: 9px; margin-top: 3px;">Duration: ${test.duration}ms</div>
+                        `;
+                        list.appendChild(item);
+                    });
+                } else {
+                    list.innerHTML = '<div style="color: #0099ff;">No test history yet...</div>';
+                }
+            } catch (err) {
+                console.error('Error loading history:', err);
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/test-templates');
+                const data = await response.json();
+                const list = document.getElementById('templatesList');
+                list.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(template => {
+                        const item = document.createElement('div');
+                        item.className = 'template-item';
+                        item.innerHTML = `
+                            <div class="template-name">${template.name}</div>
+                            <div class="template-desc">${template.description || 'No description'}</div>
+                        `;
+                        item.onclick = () => {
+                            document.getElementById('url').value = template.url;
+                            document.getElementById('goal').value = template.goal;
+                            document.getElementById('testPlan').value = template.testPlan || '';
+                            switchTab('control');
+                        };
+                        list.appendChild(item);
+                    });
+                } else {
+                    list.innerHTML = '<div style="color: #0099ff;">No templates saved yet...</div>';
+                }
+            } catch (err) {
+                console.error('Error loading templates:', err);
+            }
+        }
+
+        async function saveTemplate() {
+            const name = document.getElementById('templateName').value;
+            const desc = document.getElementById('templateDesc').value;
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+            const testPlan = document.getElementById('testPlan').value;
+
+            if (!name) {
+                alert('Template name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/test-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description: desc, url, goal, testPlan })
+                });
+
+                if (response.ok) {
+                    alert('Template saved successfully!');
+                    document.getElementById('templateName').value = '';
+                    document.getElementById('templateDesc').value = '';
+                    loadTemplates();
+                }
+            } catch (err) {
+                alert('Failed to save template: ' + err.message);
+            }
+        }
+
+        // Generate Plan Button
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+
+            if (!url || !goal) {
+                alert('Please fill in URL and Goal');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/generate-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, goal })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('testPlan').value = data.plan;
+                    document.getElementById('planPanel').style.display = 'block';
+                    document.getElementById('runBtn').disabled = false;
+                }
+            } catch (err) {
+                alert('Error generating plan: ' + err.message);
+            }
+        });
+
+        // Run Test Button
+        document.getElementById('runForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+            const testPlan = document.getElementById('testPlan').value;
+            const reportBug = document.getElementById('reportBug').checked;
+
+            try {
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, goal, testPlan, reportBug })
+                });
+
+                const data = await response.json();
+                alert(data.message || 'Test completed');
+                loadHistory();
+            } catch (err) {
+                alert('Error running test: ' + err.message);
+            }
+        });
+
+        // Load initial data
+        loadTemplates();
+    </script>
+</body>
+</html>
