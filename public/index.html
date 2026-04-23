@@ -3,233 +3,1532 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous QA Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AI QA Agent - Live Execution Dashboard</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a; /* Slate 900 */
-            color: #f1f5f9; /* Slate 100 */
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%);
+            height: 100vh;
+            color: #00ff88;
+            display: flex;
+            flex-direction: column;
         }
-        
-        .terminal {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #1e293b;
-            color: #10b981; /* Emerald 500 */
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
-        
-        .loader {
-            border: 4px solid #1e293b;
-            border-top: 4px solid #3b82f6;
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Header with Tabs */
+        .header {
+            background: rgba(10, 14, 39, 0.98);
+            border-bottom: 2px solid #00ff88;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+            letter-spacing: 2px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid #0099ff;
+            color: #0099ff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            background: rgba(0, 153, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 15px;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 153, 255, 0.1));
+            padding: 12px;
+            border-bottom: 2px solid #00ff88;
+            font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        /* Left Panel - Controls */
+        .control-panel .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #0099ff;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid #0099ff;
+            color: #00ff88;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            transition: all 0.3s ease;
+            resize: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            flex-grow: 1;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 153, 255, 0.1));
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3), rgba(0, 153, 255, 0.3));
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.stop {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .btn.stop:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(255, 0, 0, 0.1));
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+        }
+
+        /* Test Plan Section */
+        .test-plan-section {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 153, 255, 0.1);
+            border: 1px dashed #0099ff;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .test-plan-section.active {
+            display: block;
+        }
+
+        .test-plan-section label {
+            font-size: 11px;
+            color: #ffaa00;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 30px 15px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 153, 255, 0.05));
+            border: 2px dashed #00ff88;
+            border-radius: 8px;
+            min-height: 100px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 136, 0.3);
+            border-top-color: #00ff88;
+            border-right-color: #0099ff;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: #00ff88;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px #00ff88;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .loader-dots {
+            display: inline-flex;
+            gap: 3px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #0099ff;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1); }
+        }
+
+        #testPlan {
+            width: 100%;
+            min-height: 80px;
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            resize: none;
+        }
+
+        /* Center Panel - Logs */
+        .logs-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logs-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #00ff88;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+        }
+
+        .log-entry.action {
+            color: #ffaa00;
+        }
+
+        .log-entry.error {
+            color: #ff0000;
+        }
+
+        .log-entry.success {
+            color: #00ff00;
+        }
+
+        .log-entry.thought {
+            color: #0099ff;
+        }
+
+        /* Right Panel - Status */
+        .status-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-box {
+            padding: 12px;
+            background: rgba(255, 0, 255, 0.05);
+            border: 1px solid #ff00ff;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(255, 0, 255, 0.2);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #ff00ff;
+            font-weight: bold;
+        }
+
+        .status-value {
+            color: #00ff88;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 153, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #0099ff);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .screenshot-viewer {
+            flex: 1;
+            background: rgba(10, 14, 39, 0.95);
+            border: 1px solid #00ff00;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .screenshot-viewer img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .screenshot-placeholder {
+            color: #00ff88;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-indicator.idle {
+            background: #0099ff;
+        }
+
+        .status-indicator.running {
+            background: #ffff00;
+        }
+
+        .status-indicator.success {
+            background: #00ff00;
+        }
+
+        .status-indicator.error {
+            background: #ff0000;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0099ff;
+        }
+
+        /* Hidden tabs content */
+        .tab-content {
+            display: none;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 14, 39, 0.98);
+            z-index: 11;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content-box {
+            background: rgba(26, 31, 58, 0.8);
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 px-4">
-    <div class="max-w-6xl w-full flex flex-col gap-6">
-        
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="content-wrapper">
         <!-- Header -->
-        <div class="text-center">
-            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                AI Autonomous QA Agent
-            </h1>
-            <p class="text-slate-400 mt-2">Describe a goal in plain English, and the AI will interact with the browser to achieve it.</p>
+        <div class="header">
+            <div class="title">🤖 AI QA AGENT - LIVE EXECUTION</div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('execution')">◆ LIVE</button>
+                <button class="tab-btn" onclick="switchTab('generator')">◆ GENERATOR</button>
+                <button class="tab-btn" onclick="switchTab('history')">◆ HISTORY</button>
+                <button class="tab-btn" onclick="switchTab('templates')">◆ TEMPLATES</button>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Controls Form -->
-            <div class="col-span-1 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                <form id="runForm" class="flex flex-col gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1 text-slate-300">Target URL</label>
-                        <input type="url" id="url" required value="https://www.saucedemo.com/" class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none text-slate-100">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1 text-slate-300">Testing Goal</label>
-                        <textarea id="goal" required rows="6" class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none text-slate-100 resize-none">Login to the application using username 'standard_user' and password 'secret_sauce'. Then, click 'Add to cart' on the first item (Backpack). After that, verify the cart icon in the top right shows a badge with '1'. When you verify it says '1', mark the test as done.</textarea>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="generateBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 transition-colors text-white font-semibold py-2 rounded flex justify-center items-center gap-2">
-                            <span>1. Generate Test Plan</span>
-                        </button>
-                        <button type="submit" id="runBtn" disabled class="flex-1 bg-blue-600 hover:bg-blue-500 transition-colors text-white font-semibold py-2 rounded flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
-                            <span>2. Run Test Plan</span>
-                        </button>
-                    </div>
-                    
-                    <div id="planContainer" class="hidden flex flex-col mt-4">
-                        <label class="block text-sm font-medium mb-1 text-emerald-400">Generated Test Plan (Edit before running)</label>
-                        <textarea id="testPlan" rows="6" class="w-full bg-slate-900 border border-emerald-700/50 rounded p-2 focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-100 resize-none font-mono text-sm shadow-inner"></textarea>
-                    </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Controls -->
+            <div class="panel control-panel">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>▶ TEST CONFIGURATION</span>
+                    <input type="password" id="dashboardToken" placeholder="Dashboard Password" style="width: 150px; padding: 4px 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #00ff88; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px;" title="Required only if ACCESS_TOKEN is set on the server" />
+                </div>
+                <div class="panel-content">
+                    <form id="runForm" style="display: flex; flex-direction: column; gap: 15px; height: 100%;">
+                        <div class="form-group">
+                            <label>Target URL</label>
+                            <input type="url" id="url" placeholder="https://..." value="https://www.saucedemo.com/" required />
+                        </div>
 
-                    <div id="status" class="hidden flex justify-center items-center gap-2 text-blue-400 mt-2">
-                        <div class="loader"></div>
-                        <span>Agent is thinking & acting...</span>
-                    </div>
-                </form>
+                        <div class="form-group">
+                            <label>Testing Goal</label>
+                            <textarea id="goal" placeholder="Describe your goal..." required>Login to the application using username 'standard_user' and password 'secret_sauce'. Then, click 'Add to cart' on the first item (Backpack). After that, verify the cart icon in the top right shows a badge with '1'. When you verify it says '1', mark the test as done.</textarea>
+                        </div>
+
+                        <div class="test-plan-section" id="testPlanSection">
+                            <label>Generated Test Plan (Editable)</label>
+                            <div id="planLoaderContainer" class="loader-container" style="display: none;">
+                                <div class="spinner"></div>
+                                <div class="loader-text">
+                                    Generating Plan<span class="loader-dots">
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                    </span>
+                                </div>
+                            </div>
+                            <textarea id="testPlan" placeholder="Test plan will appear here..."></textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn" id="generateBtn" onclick="generatePlan()">▶ GEN PLAN</button>
+                            <button type="submit" class="btn" id="runBtn" disabled>▶ RUN TEST</button>
+                        </div>
+                        <button type="button" class="btn stop" id="stopBtn" onclick="stopTest()" style="display: none;">⬛ STOP TEST</button>
+                    </form>
+                </div>
             </div>
 
-            <!-- Terminal and Results View -->
-            <div class="col-span-1 lg:col-span-2 flex flex-col gap-6">
-                <!-- Terminal Log -->
-                <div class="bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 flex flex-col flex-grow min-h-[300px]">
-                    <h3 class="text-lg font-semibold mb-2 border-b border-slate-700 pb-2">Execution Log</h3>
-                    <div id="terminal" class="terminal flex-grow p-4 rounded overflow-y-auto max-h-[400px] text-sm whitespace-pre-wrap">
-                        Ready to start testing...
+            <!-- Center Panel: Live Logs -->
+            <div class="panel logs-panel">
+                <div class="panel-header">▶ REAL-TIME EXECUTION LOG</div>
+                <div class="logs-content" id="logsContent">
+                    System online... Awaiting test execution...
+                </div>
+            </div>
+
+            <!-- Right Panel: Status & Screenshot -->
+            <div class="panel status-panel">
+                <div class="panel-header">▶ TEST STATUS & RESULT</div>
+                <div class="status-box">
+                    <div class="status-item">
+                        <span class="status-label"><span class="status-indicator idle" id="statusIndicator"></span>Status</span>
+                        <span class="status-value" id="statusText">Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Step</span>
+                        <span class="status-value" id="stepCounter">0/10</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Duration</span>
+                        <span class="status-value" id="durationText">0ms</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Result</span>
+                        <span class="status-value" id="resultText">Pending</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
                     </div>
                 </div>
+                <div class="screenshot-viewer" id="screenshotViewer">
+                    <div class="screenshot-placeholder">Waiting for screenshot...</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Final Screenshot -->
-                <div id="resultContainer" class="hidden bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold">Final Result</h3>
-                        <span id="badge" class="px-3 py-1 rounded text-sm font-bold"></span>
+    <!-- Generator Tab -->
+    <div id="generatorTab" class="tab-content">
+        <h2 style="color: #00ff88; margin-bottom: 20px;">🤖 TEST PLAN & CASE GENERATOR</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Test Plan Generator -->
+            <div class="tab-content-box" style="border-color: #00ff88;">
+                <h3 style="color: #00ff88; margin-bottom: 15px;">TEST PLAN GENERATOR</h3>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">Business Requirement</label>
+                    <textarea id="genRequirement" placeholder="e.g. As a user, I want to be able to reset my password using my email address..." style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px; resize: none; height: 80px;"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">Testing Scenario (Optional)</label>
+                    <select id="genScenario" style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px;">
+                        <option value="">-- Select Scenario --</option>
+                        <option value="login">User Login Flow</option>
+                        <option value="registration">User Registration</option>
+                        <option value="search">Search Functionality</option>
+                        <option value="ecommerce">E-commerce Purchase Flow</option>
+                        <option value="form">Form Submission</option>
+                        <option value="navigation">Page Navigation</option>
+                        <option value="crud">Create/Read/Update/Delete</option>
+                        <option value="custom">Custom Scenario</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">Custom Details (Optional)</label>
+                    <textarea id="genDetails" placeholder="Additional details about the test..." style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px; resize: none; height: 60px;"></textarea>
+                </div>
+
+                <button class="btn" id="btnGenPlan" onclick="generateTestPlan()" style="width: 100%; padding: 10px; margin-bottom: 10px;">▶ GENERATE PLAN</button>
+                <button class="btn" onclick="clearGenFields()" style="width: 100%; padding: 10px; border-color: #ff6600; color: #ff6600;">🗑️ CLEAR</button>
+            </div>
+
+            <!-- Test Case Generator -->
+            <div class="tab-content-box" style="border-color: #ffaa00;">
+                <h3 style="color: #ffaa00; margin-bottom: 15px;">TEST CASE GENERATOR</h3>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">Business Requirement / Feature</label>
+                    <textarea id="genFeature" placeholder="e.g. As a user, I want to be able to reset my password using my email address..." style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px; resize: none; height: 80px;"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">Test Type</label>
+                    <select id="genTestType" style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px;">
+                        <option value="">-- Select Type --</option>
+                        <option value="positive">Positive Test Case</option>
+                        <option value="negative">Negative Test Case</option>
+                        <option value="edge">Edge Case Test</option>
+                        <option value="boundary">Boundary Value Test</option>
+                        <option value="security">Security Test</option>
+                        <option value="performance">Performance Test</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="color: #0099ff;">User Actions (Comma-separated)</label>
+                    <textarea id="genActions" placeholder="e.g., Enter email, Enter password, Click login" style="width: 100%; padding: 8px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10px; resize: none; height: 80px;"></textarea>
+                </div>
+
+                <button class="btn" id="btnGenCase" onclick="generateTestCase()" style="width: 100%; padding: 10px; margin-bottom: 10px;">▶ GENERATE CASE</button>
+                <button class="btn" onclick="clearCaseFields()" style="width: 100%; padding: 10px; border-color: #ff6600; color: #ff6600;">🗑️ CLEAR</button>
+            </div>
+        </div>
+
+        <!-- Loader overlay -->
+        <div id="generatorLoader" style="display: none; align-items: center; justify-content: center; gap: 15px; margin-top: 20px;">
+            <div class="spinner" style="width: 30px; height: 30px;"></div>
+            <div class="loader-text">Generating...</div>
+        </div>
+
+        <!-- Generated Output -->
+        <div id="generatorOutput" style="margin-top: 30px; display: none;">
+            <h3 style="color: #00ff88; margin-bottom: 15px;">📋 GENERATED OUTPUT</h3>
+            <div class="tab-content-box" style="border-color: #00ff88;">
+                <div id="generatedContent" style="background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; border-radius: 4px; padding: 15px; color: #00ff88; font-size: 11px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto;"></div>
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" onclick="copyToClipboard()" style="padding: 8px;">📋 COPY</button>
+                    <button class="btn" onclick="useGeneratedTest()" style="padding: 8px; border-color: #00ff88; color: #00ff88;">▶ USE IN TEST</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Contents (Hidden by default) -->
+    <div id="historyTab" class="tab-content">
+        <h2 style="color: #00ff88; margin-bottom: 20px;">▶ TEST HISTORY</h2>
+        <div style="margin-bottom: 20px;">
+            <button class="btn" onclick="loadHistory()" style="width: auto; padding: 8px 16px;">🔄 REFRESH HISTORY</button>
+        </div>
+        <div id="historyList" style="display: grid; gap: 15px;"></div>
+    </div>
+
+    <div id="templatesTab" class="tab-content">
+        <h2 style="color: #00ff88; margin-bottom: 20px;">▶ TEST TEMPLATES</h2>
+        <div style="margin-bottom: 20px;">
+            <button class="btn" onclick="loadTemplates()" style="width: auto; padding: 8px 16px;">🔄 REFRESH TEMPLATES</button>
+            <button class="btn" onclick="showSaveTemplateForm()" style="width: auto; padding: 8px 16px; margin-left: 10px;">➕ SAVE CURRENT</button>
+        </div>
+        <div id="templatesSaveForm" style="display: none; background: rgba(0, 153, 255, 0.1); border: 2px solid #0099ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="color: #0099ff; margin-bottom: 15px;">Save as Template</h3>
+            <input type="text" id="templateName" placeholder="Template Name" style="width: 100%; padding: 8px; margin-bottom: 10px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace;" />
+            <textarea id="templateDesc" placeholder="Description (optional)" style="width: 100%; padding: 8px; margin-bottom: 10px; background: rgba(26, 31, 58, 0.8); border: 1px solid #0099ff; color: #00ff88; border-radius: 4px; font-family: 'Courier New', monospace; resize: none; height: 60px;"></textarea>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn" onclick="saveAsTemplate()">✓ SAVE</button>
+                <button class="btn" onclick="closeSaveTemplateForm()">✕ CANCEL</button>
+            </div>
+        </div>
+        <div id="templatesList" style="display: grid; gap: 15px;"></div>
+    </div>
+
+    <!-- Modal overlay for Test Details -->
+    <div id="detailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 14, 39, 0.95); z-index: 1000; padding: 40px; overflow-y: auto;">
+        <div style="max-width: 1000px; margin: 0 auto; background: rgba(26, 31, 58, 0.9); border: 2px solid #0099ff; border-radius: 10px; padding: 25px; box-shadow: 0 0 30px rgba(0, 153, 255, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0099ff; padding-bottom: 15px; margin-bottom: 20px;">
+                <h2 style="color: #0099ff; margin: 0;">📋 TEST EXECUTION DETAILS</h2>
+                <button class="btn" onclick="closeTestDetails()" style="width: auto; padding: 5px 15px; border-color: #ff0000; color: #ff0000;">✕ CLOSE</button>
+            </div>
+            
+            <div id="modalContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Left side: Details -->
+                <div>
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: #ffaa00; font-weight: bold;">Status: </span>
+                        <span id="modalStatus"></span>
                     </div>
-                    <p id="resultMessage" class="text-slate-300 mb-4"></p>
-                    <div class="w-full border border-slate-700 rounded overflow-hidden">
-                        <img id="screenshot" src="" alt="Final Browser State" class="w-full h-auto object-contain">
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: #ffaa00; font-weight: bold;">Date: </span>
+                        <span id="modalDate" style="color: #00ff88;"></span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: #ffaa00; font-weight: bold;">Duration: </span>
+                        <span id="modalDuration" style="color: #00ff88;"></span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: #ffaa00; font-weight: bold;">Target URL: </span>
+                        <span id="modalUrl" style="color: #0099ff; word-break: break-all;"></span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #ffaa00; font-weight: bold; margin-bottom: 5px;">Goal:</div>
+                        <div id="modalGoal" style="color: #00ff88; background: rgba(10, 14, 39, 0.8); padding: 10px; border-radius: 4px; border: 1px solid #00ff88;"></div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #ffaa00; font-weight: bold; margin-bottom: 5px;">Execution Logs:</div>
+                        <div id="modalLogs" style="color: #00ff88; background: rgba(10, 14, 39, 0.8); padding: 10px; border-radius: 4px; border: 1px solid #00ff88; max-height: 300px; overflow-y: auto; white-space: pre-wrap; font-size: 11px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Right side: Screenshot -->
+                <div>
+                    <div style="color: #ffaa00; font-weight: bold; margin-bottom: 5px;">Final Screenshot:</div>
+                    <div style="background: rgba(10, 14, 39, 0.8); border: 1px solid #0099ff; border-radius: 4px; padding: 5px; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                        <img id="modalScreenshot" style="max-width: 100%; max-height: 500px; object-fit: contain; display: none;" />
+                        <span id="modalNoScreenshot" style="color: #0099ff;">No screenshot available</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        const form = document.getElementById('runForm');
-        const generateBtn = document.getElementById('generateBtn');
-        const runBtn = document.getElementById('runBtn');
-        const statusDiv = document.getElementById('status');
-        const terminal = document.getElementById('terminal');
-        const resultContainer = document.getElementById('resultContainer');
-        const screenshot = document.getElementById('screenshot');
-        const badge = document.getElementById('badge');
-        const resultMessage = document.getElementById('resultMessage');
-        const planContainer = document.getElementById('planContainer');
-        const testPlanInput = document.getElementById('testPlan');
+        // ============ 3D SCENE ============
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 
-        generateBtn.addEventListener('click', async () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0a0e27, 1);
+        camera.position.z = 5;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0x00ff88, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
+        const geometries = [];
+        for (let i = 0; i < 15; i++) {
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() > 0.5 ? 0x00ff88 : 0x0099ff,
+                metalness: 0.7,
+                roughness: 0.2,
+                emissive: Math.random() > 0.5 ? 0x00ff88 : 0x0099ff,
+                emissiveIntensity: 0.3
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20
+            );
+            mesh.velocity = {
+                x: (Math.random() - 0.5) * 0.01,
+                y: (Math.random() - 0.5) * 0.01,
+                z: (Math.random() - 0.5) * 0.01
+            };
+            scene.add(mesh);
+            geometries.push(mesh);
+        }
+
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            geometries.forEach(mesh => {
+                mesh.rotation.x += mesh.velocity.x;
+                mesh.rotation.y += mesh.velocity.y;
+                mesh.position.x += mesh.velocity.x * 0.5;
+                mesh.position.y += mesh.velocity.y * 0.5;
+
+                if (Math.abs(mesh.position.x) > 15) mesh.position.x *= -0.9;
+                if (Math.abs(mesh.position.y) > 15) mesh.position.y *= -0.9;
+            });
+
+            camera.position.x = mouseX * 0.5;
+            camera.position.y = mouseY * 0.5;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // ============ UI LOGIC ============
+        let currentStep = 0;
+        let testStartTime = 0;
+        let eventSource = null;
+
+        async function generatePlan() {
             const url = document.getElementById('url').value;
             const goal = document.getElementById('goal').value;
-            
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<div class="loader w-4 h-4"></div> Generating...';
-            terminal.innerHTML = '<span class="text-slate-400">[System] Generating step-by-step test plan using LLM...</span>\n';
-            planContainer.classList.add('hidden');
-            
+
+            if (!goal) {
+                alert('Please fill in Goal');
+                return;
+            }
+
+            const testPlanSection = document.getElementById('testPlanSection');
+            const planLoaderContainer = document.getElementById('planLoaderContainer');
+            const testPlan = document.getElementById('testPlan');
+
+            testPlanSection.classList.add('active');
+            planLoaderContainer.style.display = 'flex';
+            testPlan.style.display = 'none';
+            testPlan.value = '';
+
             try {
                 const response = await fetch('/api/generate-plan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, goal })
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ url: url || 'N/A', goal: goal, type: 'plan' })
                 });
-                
+
                 const data = await response.json();
-                
                 if (response.ok) {
-                    testPlanInput.value = data.plan;
-                    planContainer.classList.remove('hidden');
-                    terminal.innerHTML += '<span class="text-emerald-400">[System] Test plan generated successfully! You can review and edit it on the left before executing.</span>\n';
-                    
-                    // Enable the run button
-                    runBtn.disabled = false;
-                    runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    planLoaderContainer.style.display = 'none';
+                    testPlan.style.display = 'block';
+                    testPlan.value = data.plan;
+                    document.getElementById('runBtn').disabled = false;
                 } else {
-                    terminal.innerHTML += `\n<span class="text-red-500 font-bold">[Error] Failed to generate plan: ${data.error}</span>`;
+                    planLoaderContainer.style.display = 'none';
+                    alert('Error: ' + data.error);
                 }
             } catch (err) {
-                terminal.innerHTML += `\n<span class="text-red-500 font-bold">[Error] Connection failed: ${err.message}</span>`;
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<span>1. Generate Test Plan</span>';
+                planLoaderContainer.style.display = 'none';
+                alert('Error generating plan: ' + err.message);
             }
-        });
+        }
 
-        form.addEventListener('submit', async (e) => {
+        document.getElementById('runForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (runBtn.disabled) return;
-            
+
             const url = document.getElementById('url').value;
             const goal = document.getElementById('goal').value;
             const testPlan = document.getElementById('testPlan').value;
 
-            // UI Reset
-            runBtn.disabled = true;
-            runBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            generateBtn.disabled = true;
-            generateBtn.classList.add('opacity-50');
-            statusDiv.classList.remove('hidden');
-            statusDiv.innerHTML = '<div class="loader w-4 h-4"></div> <span class="text-sm">Agent is executing plan...</span>';
-            resultContainer.classList.add('hidden');
-            terminal.innerHTML = '<span class="text-slate-400">[System] Initializing browser for execution...</span>\n';
+            // Clear browser cache before test run
+            if ('caches' in window) {
+                caches.keys().then(cacheNames => {
+                    cacheNames.forEach(cacheName => {
+                        caches.delete(cacheName);
+                    });
+                });
+            }
+            
+            // Clear local storage
+            try {
+                localStorage.clear();
+            } catch (e) {
+                console.log('Could not clear localStorage');
+            }
+
+            // Force a fresh page load by disabling cache headers
+            fetch('/', { cache: 'no-store' });
+
+            updateStatus('running', 'Initializing... (Cache cleared)');
+            document.getElementById('logsContent').innerHTML = '';
+            addLog('🗑️ Browser cache cleared', 'success');
+            addLog(`🚀 Starting test execution`, 'log');
+            
+            currentStep = 0;
+            testStartTime = Date.now();
+            document.getElementById('runBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
 
             try {
-                // Warning to user that this takes time (since they'll see the browser pop up if running locally)
-                terminal.innerHTML += '<span class="text-slate-400">[System] Watch your local machine for the Playwright browser window! The API call will hold until the agent finishes.</span>\n\n';
+                // For SSE, we can't easily set headers natively in EventSource, so pass it via URL
+                const token = document.getElementById('dashboardToken').value.trim();
+                eventSource = new EventSource('/api/test-events?token=' + encodeURIComponent(token));
+
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+
+                    switch (data.type) {
+                        case 'log':
+                            addLog(data.message, 'log');
+                            break;
+                        case 'action':
+                            addLog(`🎬 ${data.action.toUpperCase()} (Step ${data.step}/${data.totalSteps})`, 'action');
+                            currentStep = data.step;
+                            updateStep(data.step, data.totalSteps);
+                            break;
+                        case 'screenshot':
+                            displayScreenshot(data.screenshot);
+                            break;
+                        case 'metric':
+                            addAction(data.action, data.duration);
+                            break;
+                        case 'complete':
+                            eventSource.close();
+                            updateStatus(data.success ? 'success' : 'error', data.success ? '✓ PASSED' : '✗ FAILED');
+                            updateResult(data.success, data.message, data.duration);
+                            document.getElementById('stopBtn').style.display = 'none';
+                            document.getElementById('runBtn').style.display = 'block';
+                            break;
+                        case 'error':
+                            addLog(`❌ ${data.message}`, 'error');
+                            break;
+                    }
+                };
 
                 const response = await fetch('/api/run', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, goal, testPlan })
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ url, goal, testPlan, reportBug: false })
+                });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Connection error: ' + err.message);
+                updateStatus('error', 'Connection Failed');
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('runBtn').style.display = 'block';
+            }
+        });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Connection error: ' + err.message);
+                updateStatus('error', 'Connection Failed');
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('runBtn').style.display = 'block';
+            }
+        });
+
+        function stopTest() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            updateStatus('error', 'Stopped');
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('runBtn').style.display = 'block';
+            addLog('⬛ Test execution stopped by user', 'error');
+        }
+
+        function addLog(message, type = 'log') {
+            const logsContent = document.getElementById('logsContent');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            logsContent.appendChild(entry);
+            logsContent.scrollTop = logsContent.scrollHeight;
+        }
+
+        function displayScreenshot(base64) {
+            const viewer = document.getElementById('screenshotViewer');
+            viewer.innerHTML = `<img src="data:image/png;base64,${base64}" />`;
+        }
+
+        function updateStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            indicator.className = `status-indicator ${status}`;
+            statusText.textContent = text;
+        }
+
+        function updateStep(step, total) {
+            document.getElementById('stepCounter').textContent = `${step}/${total}`;
+            document.getElementById('progressFill').style.width = `${(step / total) * 100}%`;
+        }
+
+        function updateResult(success, message, duration) {
+            document.getElementById('resultText').textContent = success ? '✓ PASSED' : '✗ FAILED';
+            document.getElementById('durationText').textContent = `${duration}ms`;
+        }
+
+        // Helper function to get token header
+        function getAuthHeaders() {
+            const token = document.getElementById('dashboardToken').value.trim();
+            return {
+                'Content-Type': 'application/json',
+                'x-access-token': token
+            };
+        }
+
+        // ============ TEST PLAN & CASE GENERATOR ============
+        async function generateTestPlan() {
+            const requirement = document.getElementById('genRequirement').value.trim();
+            const scenario = document.getElementById('genScenario').value;
+            const details = document.getElementById('genDetails').value.trim();
+
+            if (!requirement) {
+                alert('Please fill in Business Requirement');
+                return;
+            }
+
+            let fullRequirement = requirement;
+            if (scenario) fullRequirement += `\nScenario: ${scenario}`;
+            if (details) fullRequirement += `\nDetails: ${details}`;
+
+            const btn = document.getElementById('btnGenPlan');
+            const loader = document.getElementById('generatorLoader');
+            
+            btn.disabled = true;
+            loader.style.display = 'flex';
+            document.getElementById('generatorOutput').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate-plan', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        requirement: fullRequirement,
+                        type: 'plan'
+                    })
                 });
 
                 const data = await response.json();
+                if (response.ok) {
+                    showGeneratedOutput(data.plan);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        async function generateTestCase() {
+            const feature = document.getElementById('genFeature').value.trim();
+            const testType = document.getElementById('genTestType').value;
+            const actions = document.getElementById('genActions').value.trim();
+
+            if (!feature || !testType || !actions) {
+                alert('Please fill in Feature, Test Type, and Actions');
+                return;
+            }
+
+            const prompt = `Feature: ${feature}\nTest Type: ${testType}\nUser Actions: ${actions}`;
+
+            const btn = document.getElementById('btnGenCase');
+            const loader = document.getElementById('generatorLoader');
+            
+            btn.disabled = true;
+            loader.style.display = 'flex';
+            document.getElementById('generatorOutput').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate-plan', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        goal: prompt,
+                        type: 'case'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showGeneratedOutput(data.plan);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        function showGeneratedOutput(content) {
+            const output = document.getElementById('generatorOutput');
+            const generatedContent = document.getElementById('generatedContent');
+            
+            generatedContent.textContent = content;
+            output.style.display = 'block';
+            output.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearGenFields() {
+            document.getElementById('genRequirement').value = '';
+            document.getElementById('genScenario').value = '';
+            document.getElementById('genDetails').value = '';
+        }
+
+        function clearCaseFields() {
+            document.getElementById('genFeature').value = '';
+            document.getElementById('genTestType').value = '';
+            document.getElementById('genActions').value = '';
+        }
+
+        function copyToClipboard() {
+            const content = document.getElementById('generatedContent').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(() => {
+                alert('Copy failed. Please try manually selecting the text.');
+            });
+        }
+
+        function useGeneratedTest() {
+            const content = document.getElementById('generatedContent').textContent;
+            document.getElementById('goal').value = content;
+            switchTab('execution');
+            alert('Generated test loaded into execution panel. You can now click "GEN PLAN" or "RUN TEST".');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (tabName === 'execution') {
+                document.querySelector('.main-content').style.display = 'grid';
+            } else {
+                document.querySelector('.main-content').style.display = 'none';
+                document.getElementById(tabName + 'Tab').classList.add('active');
+                
+                // Load content when tab is clicked
+                if (tabName === 'history') {
+                    loadHistory();
+                } else if (tabName === 'templates') {
+                    loadTemplates();
+                }
+            }
+
+            event.target.classList.add('active');
+        }
+
+        async function loadHistory() {
+            try {
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch('/api/test-history?limit=50', {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    document.getElementById('historyList').innerHTML = `<div style="color: #ff0000; padding: 20px;">Error: ${data.error || 'Authentication failed'}</div>`;
+                    return;
+                }
+                
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(test => {
+                        const date = new Date(test.timestamp).toLocaleString();
+                        const status = test.success ? '✓ PASSED' : '✗ FAILED';
+                        const statusColor = test.success ? '#00ff00' : '#ff0000';
+                        
+                        const item = document.createElement('div');
+                        item.className = 'tab-content-box';
+                        item.style.borderColor = statusColor;
+                        item.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="color: ${statusColor}; font-weight: bold; font-size: 12px;">${status}</div>
+                                <div style="color: #0099ff; font-size: 10px;">${date}</div>
+                            </div>
+                            <div style="color: #00ff88; font-size: 11px; margin-bottom: 8px;">Goal: ${test.goal.substring(0, 100)}...</div>
+                            <div style="color: #ffaa00; font-size: 10px; margin-bottom: 8px;">Duration: ${test.duration}ms</div>
+                            <button class="btn" onclick="showTestDetails('${test.id}')" style="width: 100%; padding: 6px;">📋 VIEW DETAILS</button>
+                        `;
+                        historyList.appendChild(item);
+                    });
+                } else {
+                    historyList.innerHTML = '<div style="color: #0099ff; font-size: 14px; text-align: center; padding: 40px;">No test history yet. Run a test to see results!</div>';
+                }
+            } catch (err) {
+                console.error('Error loading history:', err);
+                document.getElementById('historyList').innerHTML = `<div style="color: #ff0000;">Error loading history: ${err.message}</div>`;
+            }
+        }
+
+        async function showTestDetails(testId) {
+            try {
+                // Fetch full details
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch(`/api/test-run/${testId}`, {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const test = data.data;
+                    
+                    // Populate modal
+                    document.getElementById('modalStatus').innerHTML = test.success ? '<span style="color: #00ff00;">✓ PASSED</span>' : '<span style="color: #ff0000;">✗ FAILED</span>';
+                    document.getElementById('modalDate').textContent = new Date(test.timestamp).toLocaleString();
+                    document.getElementById('modalDuration').textContent = `${test.duration} ms`;
+                    document.getElementById('modalUrl').textContent = test.url || 'N/A';
+                    document.getElementById('modalGoal').textContent = test.goal;
+                    document.getElementById('modalLogs').textContent = test.logs || 'No logs available.';
+                    
+                    // Screenshot
+                    const imgEl = document.getElementById('modalScreenshot');
+                    const noImgEl = document.getElementById('modalNoScreenshot');
+                    
+                    if (test.screenshotBase64) {
+                        imgEl.src = `data:image/png;base64,${test.screenshotBase64}`;
+                        imgEl.style.display = 'block';
+                        noImgEl.style.display = 'none';
+                    } else {
+                        imgEl.style.display = 'none';
+                        noImgEl.style.display = 'block';
+                    }
+                    
+                    // Show modal
+                    document.getElementById('detailsModal').style.display = 'block';
+                } else {
+                    alert('Error loading test details: ' + (data.error || 'Authentication failed'));
+                }
+            } catch (err) {
+                console.error('Failed to load test details:', err);
+                alert('Connection error. Could not load details.');
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch('/api/test-templates', {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    document.getElementById('templatesList').innerHTML = `<div style="color: #ff0000; padding: 20px;">Error: ${data.error || 'Authentication failed'}</div>`;
+                    return;
+                }
+                
+                const templatesList = document.getElementById('templatesList');
+                templatesList.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(template => {
+                        const item = document.createElement('div');
+                        item.className = 'tab-content-box';
+                        item.style.borderColor = '#ffaa00';
+                        item.innerHTML = `
+                            <div style="color: #ffaa00; font-weight: bold; font-size: 12px; margin-bottom: 8px;">${template.name}</div>
+                            <div style="color: #00ff88; font-size: 11px; margin-bottom: 8px;">${template.description || 'No description'}</div>
+                            <div style="color: #0099ff; font-size: 10px; margin-bottom: 12px;">URL: ${template.url}</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="btn" onclick="useTemplate('${template.id}')" style="padding: 6px;">▶ USE</button>
+                                <button class="btn" onclick="deleteTemplate('${template.id}')" style="padding: 6px; border-color: #ff0000; color: #ff0000;">🗑️ DELETE</button>
+                            </div>
+                        `;
+                        templatesList.appendChild(item);
+                    });
+                } else {
+                    templatesList.innerHTML = '<div style="color: #0099ff; font-size: 14px; text-align: center; padding: 40px;">No templates saved yet. Save your first test to create a template!</div>';
+                }
+            } catch (err) {
+                console.error('Error loading templates:', err);
+                document.getElementById('templatesList').innerHTML = `<div style="color: #ff0000;">Error loading templates: ${err.message}</div>`;
+            }
+        }
+
+        async function saveAsTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            const desc = document.getElementById('templateDesc').value.trim();
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+            const testPlan = document.getElementById('testPlan').value;
+
+            if (!name) {
+                alert('Template name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/test-template', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ name, description: desc, url, goal, testPlan })
+                });
 
                 if (response.ok) {
-                    // Render Logs
-                    terminal.innerHTML = '';
-                    data.logs.forEach(log => {
-                        let colorClass = 'text-emerald-400'; // Default text color
-                        if (log.includes('🤔 Thought:')) colorClass = 'text-blue-300';
-                        if (log.includes('🎬 Action:')) colorClass = 'text-yellow-300';
-                        if (log.includes('❌')) colorClass = 'text-red-400 font-bold';
-                        if (log.includes('✅')) colorClass = 'text-green-400 font-bold';
-                        if (log.includes('--- Step')) colorClass = 'text-slate-400 mt-4 block';
-                        
-                        terminal.innerHTML += `<span class="${colorClass}">${log}</span>\n`;
-                    });
-
-                    // Scroll to bottom
-                    terminal.scrollTop = terminal.scrollHeight;
-
-                    // Render Screenshot and Badge
-                    resultContainer.classList.remove('hidden');
-                    
-                    if (data.success) {
-                        badge.textContent = "PASSED";
-                        badge.className = "px-3 py-1 rounded text-sm font-bold bg-green-500/20 text-green-400 border border-green-500/50";
-                    } else {
-                        badge.textContent = "FAILED";
-                        badge.className = "px-3 py-1 rounded text-sm font-bold bg-red-500/20 text-red-400 border border-red-500/50";
-                    }
-
-                    resultMessage.textContent = data.message || (data.success ? "Agent successfully completed the goal." : "Agent failed or timed out.");
-
-                    if (data.screenshot) {
-                        screenshot.src = `data:image/png;base64,${data.screenshot}`;
-                    } else {
-                        screenshot.alt = "No screenshot captured.";
-                    }
+                    alert('Template saved successfully!');
+                    closeSaveTemplateForm();
+                    loadTemplates();
                 } else {
-                    terminal.innerHTML += `\n<span class="text-red-500 font-bold">[Error] Server returned status ${response.status}: ${data.error}</span>`;
+                    const err = await response.json();
+                    alert('Error: ' + err.error);
                 }
-
             } catch (err) {
-                terminal.innerHTML += `\n<span class="text-red-500 font-bold">[Error] Connection failed: ${err.message}</span>`;
-            } finally {
-                runBtn.disabled = false;
-                runBtn.classList.remove('opacity-50');
-                statusDiv.classList.add('hidden');
+                alert('Error saving template: ' + err.message);
             }
+        }
+
+        async function useTemplate(templateId) {
+            try {
+                const token = document.getElementById('dashboardToken').value.trim();
+                const response = await fetch(`/api/test-run/${templateId}`, {
+                    headers: { 'x-access-token': token }
+                });
+                
+                const data = await response.json();
+                
+                if (data.data) {
+                    document.getElementById('url').value = data.data.url;
+                    document.getElementById('goal').value = data.data.goal;
+                    document.getElementById('testPlan').value = data.data.testPlan || '';
+                    
+                    // Show test plan section
+                    document.getElementById('testPlanSection').classList.add('active');
+                    document.getElementById('testPlan').style.display = 'block';
+                    document.getElementById('planLoaderContainer').style.display = 'none';
+                    
+                    // Switch to execution tab
+                    switchTab('execution');
+                    alert('Template loaded! Click "RUN TEST" to execute.');
+                }
+            } catch (err) {
+                alert('Error loading template: ' + err.message);
+            }
+        }
+            } catch (err) {
+                console.error('Error loading history:', err);
+                document.getElementById('historyList').innerHTML = `<div style="color: #ff0000;">Error loading history: ${err.message}</div>`;
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/test-templates');
+                const data = await response.json();
+                const templatesList = document.getElementById('templatesList');
+                templatesList.innerHTML = '';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(template => {
+                        const item = document.createElement('div');
+                        item.className = 'tab-content-box';
+                        item.style.borderColor = '#ffaa00';
+                        item.innerHTML = `
+                            <div style="color: #ffaa00; font-weight: bold; font-size: 12px; margin-bottom: 8px;">${template.name}</div>
+                            <div style="color: #00ff88; font-size: 11px; margin-bottom: 8px;">${template.description || 'No description'}</div>
+                            <div style="color: #0099ff; font-size: 10px; margin-bottom: 12px;">URL: ${template.url}</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="btn" onclick="useTemplate('${template.id}')" style="padding: 6px;">▶ USE</button>
+                                <button class="btn" onclick="deleteTemplate('${template.id}')" style="padding: 6px; border-color: #ff0000; color: #ff0000;">🗑️ DELETE</button>
+                            </div>
+                        `;
+                        templatesList.appendChild(item);
+                    });
+                } else {
+                    templatesList.innerHTML = '<div style="color: #0099ff; font-size: 14px; text-align: center; padding: 40px;">No templates saved yet. Save your first test to create a template!</div>';
+                }
+            } catch (err) {
+                console.error('Error loading templates:', err);
+                document.getElementById('templatesList').innerHTML = `<div style="color: #ff0000;">Error loading templates: ${err.message}</div>`;
+            }
+        }
+
+        function showSaveTemplateForm() {
+            document.getElementById('templatesSaveForm').style.display = 'block';
+            document.getElementById('templateName').value = '';
+            document.getElementById('templateDesc').value = '';
+            document.getElementById('templateName').focus();
+        }
+
+        function closeSaveTemplateForm() {
+            document.getElementById('templatesSaveForm').style.display = 'none';
+        }
+
+        async function saveAsTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            const desc = document.getElementById('templateDesc').value.trim();
+            const url = document.getElementById('url').value;
+            const goal = document.getElementById('goal').value;
+            const testPlan = document.getElementById('testPlan').value;
+
+            if (!name) {
+                alert('Template name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/test-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description: desc, url, goal, testPlan })
+                });
+
+                if (response.ok) {
+                    alert('Template saved successfully!');
+                    closeSaveTemplateForm();
+                    loadTemplates();
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + err.error);
+                }
+            } catch (err) {
+                alert('Error saving template: ' + err.message);
+            }
+        }
+
+        async function useTemplate(templateId) {
+            try {
+                const response = await fetch(`/api/test-run/${templateId}`);
+                const data = await response.json();
+                
+                if (data.data) {
+                    document.getElementById('url').value = data.data.url;
+                    document.getElementById('goal').value = data.data.goal;
+                    document.getElementById('testPlan').value = data.data.testPlan || '';
+                    
+                    // Show test plan section
+                    document.getElementById('testPlanSection').classList.add('active');
+                    document.getElementById('testPlan').style.display = 'block';
+                    document.getElementById('planLoaderContainer').style.display = 'none';
+                    
+                    // Switch to execution tab
+                    switchTab('execution');
+                    alert('Template loaded! Click "RUN TEST" to execute.');
+                }
+            } catch (err) {
+                alert('Error loading template: ' + err.message);
+            }
+        }
+
+        async function deleteTemplate(templateId) {
+            if (!confirm('Are you sure you want to delete this template?')) {
+                return;
+            }
+            // TODO: Implement delete endpoint
+            alert('Delete functionality coming soon!');
+        }
+
+        async function showTestDetails(testId) {
+            try {
+                // Fetch full details
+                const response = await fetch(`/api/test-run/${testId}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const test = data.data;
+                    
+                    // Populate modal
+                    document.getElementById('modalStatus').innerHTML = test.success ? '<span style="color: #00ff00;">✓ PASSED</span>' : '<span style="color: #ff0000;">✗ FAILED</span>';
+                    document.getElementById('modalDate').textContent = new Date(test.timestamp).toLocaleString();
+                    document.getElementById('modalDuration').textContent = `${test.duration} ms`;
+                    document.getElementById('modalUrl').textContent = test.url || 'N/A';
+                    document.getElementById('modalGoal').textContent = test.goal;
+                    document.getElementById('modalLogs').textContent = test.logs || 'No logs available.';
+                    
+                    // Screenshot
+                    const imgEl = document.getElementById('modalScreenshot');
+                    const noImgEl = document.getElementById('modalNoScreenshot');
+                    
+                    if (test.screenshotBase64) {
+                        imgEl.src = `data:image/png;base64,${test.screenshotBase64}`;
+                        imgEl.style.display = 'block';
+                        noImgEl.style.display = 'none';
+                    } else {
+                        imgEl.style.display = 'none';
+                        noImgEl.style.display = 'block';
+                    }
+                    
+                    // Show modal
+                    document.getElementById('detailsModal').style.display = 'block';
+                } else {
+                    alert('Error loading test details');
+                }
+            } catch (err) {
+                console.error('Failed to load test details:', err);
+                alert('Connection error. Could not load details.');
+            }
+        }
+
+        function closeTestDetails() {
+            document.getElementById('detailsModal').style.display = 'none';
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>

@@ -75,9 +75,9 @@ const rootPath = __dirname.includes('dist') ? path.join(__dirname, '..') : __dir
 // Serve static frontend files
 app.use(express.static(path.join(rootPath, 'public')));
 
-// Serve the Live Execution Dashboard as the default page
+// Serve the 3D Dashboard as the default page
 app.get('/', (req, res) => {
-    res.sendFile(path.join(rootPath, 'public', '3d-execution.html'));
+    res.sendFile(path.join(rootPath, 'public', 'index.html'));
 });
 
 app.post('/api/generate-plan', requireAuth, async (req, res) => {
