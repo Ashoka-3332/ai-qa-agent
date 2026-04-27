@@ -121,7 +121,7 @@ This document tracks all security and stability improvements made to make the QA
 ```bash
 # Required
 OPENAI_API_KEY=your_api_key_here
-OPENAI_BASE_URL=https://gpt.protium.co.in/api/v1/
+OPENAI_BASE_URL=https://openai.com/api/
 OPENAI_MODEL=gemini-2.5-flash
 
 # Recommended for Production
