@@ -402,7 +402,7 @@ app.post('/api/debug/test-api', async (req, res) => {
         const ip = await response.json();
         res.json({ 
             outbound_ip: ip.ip,
-            message: 'This is your outbound IP. Share this with gpt.protium.co.in admin for whitelisting'
+            message: 'This is your outbound IP. Share this with admin for whitelisting'
         });
     } catch (e) {
         res.status(500).json({ error: String(e) });
