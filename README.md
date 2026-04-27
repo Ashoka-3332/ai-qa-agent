@@ -1,5 +1,4 @@
-# 🤖 AI Autonomous QA Testing Platform
-
+-# 🤖 AI Autonomous QA Testing Platform
 A **production-ready, AI-powered QA automation platform** with real-time execution monitoring, intelligent test planning, and comprehensive bug reporting. Built with TypeScript, Playwright, and Three.js.
 
 > ✅ **Production Hardened**: All critical security vulnerabilities fixed. See [FIXES_SUMMARY.md](./FIXES_SUMMARY.md) for details.
@@ -44,16 +43,13 @@ A **production-ready, AI-powered QA automation platform** with real-time executi
 - Modern web browser
 
 ### Installation
-
 ```bash
 cd qa-agent
 npm install
 ```
 
 ### Configuration
-
 Create a `.env` file with your API credentials:
-
 ```bash
 cp .env.example .env
 # Edit with your actual values
@@ -63,20 +59,18 @@ nano .env
 **Required Environment Variables:**
 ```
 OPENAI_API_KEY=sk-your_actual_key_here
-OPENAI_BASE_URL=https://gpt.protium.co.in/api/v1/
-OPENAI_MODEL=gemini-2.5-flash
+OPENAI_BASE_URL=https://api.openai.com/v1/
+OPENAI_MODEL=gpt-4o
 ```
 
 **Optional Environment Variables:**
 ```
 # Access Control
 ACCESS_TOKEN=your_secure_password
-
 # Jira Bug Reporting
 JIRA_URL=https://your-jira.atlassian.net
 JIRA_TOKEN=your_jira_api_token
 JIRA_PROJECT=PROJ
-
 # Slack Notifications
 SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK
 ```
@@ -84,12 +78,10 @@ SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK
 See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for production configuration.
 
 ### Running the Platform
-
 ```bash
 npm start
 ```
-
-The dashboard will be available at **`http://localhost:3000`**
+The dashboard will be available at *`http://localhost:3000`**
 
 ---
 
@@ -181,7 +173,6 @@ Body: { name, description, url, goal, testPlan }
 ---
 
 ## 📁 Project Structure
-
 ```
 qa-agent/
 ├── agent.ts                 # AI agent core logic
@@ -204,20 +195,16 @@ qa-agent/
 ## 🎯 Advanced Features
 
 ### Enable Bug Reporting
-
 Set environment variables and tests will auto-report failures:
-
 ```bash
 JIRA_URL=https://jira.company.com
 JIRA_TOKEN=your_token
 JIRA_PROJECT=MYPROJ
 SLACK_WEBHOOK=https://hooks.slack.com/...
 ```
-
 Then enable "Report failures" checkbox in the UI before running tests.
 
 ### Save Test Templates
-
 After creating a successful test:
 1. Navigate to the TEMPLATES tab
 2. Fill in template name and description
@@ -225,13 +212,11 @@ After creating a successful test:
 4. Reuse anytime from the TEMPLATES tab
 
 ### View Performance Metrics
-
 Each test automatically tracks:
 - Individual action timing
 - Total test duration
 - Step completion count
 - Success/failure rate
-
 Access from the History tab.
 
 ---
@@ -322,7 +307,6 @@ CREATE TABLE performance_metrics (
 ---
 
 ## 🔐 Security
-
 - API keys stored in `.env` (git-ignored)
 - Passwords never logged
 - Screenshots only saved locally
@@ -331,12 +315,10 @@ CREATE TABLE performance_metrics (
 ---
 
 ## 📝 Logs & Debugging
-
 View real-time server logs:
 ```bash
 tail -f /tmp/qa-agent.log
 ```
-
 Check SQLite database:
 ```bash
 sqlite3 qa-tests.db "SELECT * FROM test_runs LIMIT 5;"
@@ -345,7 +327,6 @@ sqlite3 qa-tests.db "SELECT * FROM test_runs LIMIT 5;"
 ---
 
 ## 🚀 Performance Tips
-
 1. **Increase maxSteps** for complex workflows
 2. **Use test templates** to avoid regenerating plans
 3. **Monitor metrics** to identify slow steps
@@ -354,7 +335,6 @@ sqlite3 qa-tests.db "SELECT * FROM test_runs LIMIT 5;"
 ---
 
 ## 📚 Documentation
-
 - **[FIXES_SUMMARY.md](./FIXES_SUMMARY.md)** - Executive summary of all production fixes
 - **[PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md)** - Security verification checklist
 - **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Production deployment instructions
@@ -364,19 +344,15 @@ sqlite3 qa-tests.db "SELECT * FROM test_runs LIMIT 5;"
 ## 🚀 Deployment
 
 ### One-Click Deploy to Render
-
 This repo includes a `Dockerfile` and `render.yaml` for easy deployment:
-
 1. Push to GitHub
 2. Connect Render to your GitHub account
 3. Create new Web Service
 4. Set environment variables
 5. Deploy!
-
 See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for detailed instructions.
 
 ### Production Features
-
 - ✅ HTTPS enabled automatically
 - ✅ Rate limiting (100 req/15min)
 - ✅ CORS protection
@@ -389,19 +365,16 @@ See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for detailed instructions.
 ---
 
 ## 🤝 Contributing
-
 This is a personal project. Feel free to fork and customize!
 
 ---
 
 ## 📄 License
-
 MIT License - Use freely
 
 ---
 
 ## 🎓 How It Works
-
 ```
 ┌─────────────────────────────────────────────────────┐
 │  User Input (URL + Goal)                             │
@@ -435,14 +408,11 @@ MIT License - Use freely
 ---
 
 ## 🎨 Technology Stack
-
 - **Backend**: Node.js + Express + TypeScript
 - **Testing**: Playwright (Chromium automation)
-- **AI**: OpenAI/Gemini API
+- **AI**: OpenAI API
 - **Database**: SQLite3
 - **Frontend**: Three.js (3D), Vanilla JavaScript
 - **UI**: Tailwind CSS + Custom Cyberpunk Theme
-
----
 
 **Happy Testing! 🚀**
