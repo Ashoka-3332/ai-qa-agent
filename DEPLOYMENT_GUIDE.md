@@ -26,7 +26,7 @@ Create a `.env` file in production with:
 ```bash
 # API Configuration (MUST be set)
 OPENAI_API_KEY=sk-xxxxxxxxxxxx  # Your actual API key - ROTATE THIS IMMEDIATELY
-OPENAI_BASE_URL=https://gpt.protium.co.in/api/v1/
+OPENAI_BASE_URL=
 OPENAI_MODEL=gemini-2.5-flash
 
 # Server Configuration
