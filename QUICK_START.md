@@ -11,7 +11,7 @@ cp .env.example .env
 Edit `.env` and set:
 ```
 OPENAI_API_KEY=your_key
-OPENAI_BASE_URL=https://gpt.protium.co.in/api/v1/
+OPENAI_BASE_URL=
 OPENAI_MODEL=gemini-2.5-flash
 ```
 
